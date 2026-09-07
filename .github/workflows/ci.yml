@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches-ignore: [main] # main is covered by deploy.yml calling this workflow below
+    branches-ignore: [master] # master is covered by deploy.yml calling this workflow below
   pull_request:
   workflow_call:
 
