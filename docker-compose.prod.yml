@@ -1,5 +1,4 @@
-# What Arcane runs. Set IMAGE to the GHCR image built by .github/workflows/deploy.yml
-# (e.g. ghcr.io/<owner>/md2-tracker:latest) once the GitHub repo exists.
+# What Arcane runs. Set IMAGE to override the GHCR image built by .github/workflows/deploy.yml.
 services:
   db:
     image: postgres:16-alpine
@@ -17,7 +16,7 @@ services:
       retries: 10
 
   app:
-    image: ${IMAGE:-ghcr.io/OWNER/md2-tracker:latest}
+    image: ${IMAGE:-ghcr.io/daoenti/md2-tracker:latest}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://md2:${POSTGRES_PASSWORD}@db:5432/md2_tracker

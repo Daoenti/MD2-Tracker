@@ -29,7 +29,8 @@ jobs:
 
       - name: Compute image name
         id: meta
-        run: echo "image=ghcr.io/${{ github.repository }}" >> "$GITHUB_OUTPUT"
+        # GHCR requires a lowercase repository name; github.repository preserves case.
+        run: echo "image=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -43,18 +44,37 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    environment: main
     steps:
-      # TODO: replace with the real Arcane redeploy call once its API shape is confirmed.
-      # Everything upstream (image name/tag/registry) is stable regardless of what this
-      # call ends up looking like — this step is intentionally isolated and can no-op.
+      # Arcane (https://github.com/getarcaneapp/arcane) manages the compose project referenced
+      # by docker-compose.prod.yml; this just tells it to pull the new :latest image and restart.
+      # ARCANE_ENVIRONMENT_ID/ARCANE_PROJECT_ID identify that compose project within Arcane, not
+      # secrets — hardcoded below since they're stable for this deployment.
+      #
+      # redeploy has a known bug where it's a no-op on an already-running project
+      # (https://github.com/getarcaneapp/arcane/issues/1943), so this stops it first.
       - name: Trigger Arcane redeploy
         env:
-          ARCANE_BASE_URL: ${{ secrets.ARCANE_BASE_URL }}
-          ARCANE_API_TOKEN: ${{ secrets.ARCANE_API_TOKEN }}
+          ARCANE_URL: ${{ secrets.ARCANE_URL }}
+          ARCANE_API_KEY: ${{ secrets.ARCANE_API_KEY }}
+          ARCANE_ENVIRONMENT_ID: '0'
+          ARCANE_PROJECT_ID: md2-tracker
           IMAGE: ${{ needs.build-and-push.outputs.image }}:${{ github.sha }}
         run: |
-          if [ -z "$ARCANE_BASE_URL" ] || [ -z "$ARCANE_API_TOKEN" ]; then
-            echo "ARCANE_BASE_URL/ARCANE_API_TOKEN not set yet; skipping redeploy call (image pushed as $IMAGE)."
+          if [ -z "$ARCANE_URL" ] || [ -z "$ARCANE_API_KEY" ]; then
+            echo "ARCANE_URL/ARCANE_API_KEY not set yet; skipping redeploy call (image pushed as $IMAGE)."
             exit 0
           fi
-          echo "TODO: call Arcane's redeploy API for $IMAGE"
+
+          base="$ARCANE_URL/api/environments/$ARCANE_ENVIRONMENT_ID/projects/$ARCANE_PROJECT_ID"
+
+          echo "Stopping project (best-effort, ignores failure if it's not running yet)..."
+          curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$base/down" -H "X-Api-Key: $ARCANE_API_KEY" || true
+
+          echo "Redeploying with latest image ($IMAGE)..."
+          status=$(curl -sS -o /tmp/arcane-redeploy.json -w '%{http_code}' -X POST "$base/redeploy" -H "X-Api-Key: $ARCANE_API_KEY")
+          cat /tmp/arcane-redeploy.json
+          if [ "$status" -ge 300 ]; then
+            echo "Arcane redeploy failed with HTTP $status"
+            exit 1
+          fi
