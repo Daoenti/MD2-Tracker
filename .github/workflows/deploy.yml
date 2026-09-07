@@ -58,7 +58,7 @@ jobs:
           ARCANE_URL: ${{ secrets.ARCANE_URL }}
           ARCANE_API_KEY: ${{ secrets.ARCANE_API_KEY }}
           ARCANE_ENVIRONMENT_ID: '0'
-          ARCANE_PROJECT_ID: md2-tracker
+          ARCANE_PROJECT_ID: 2271ebb0-5ece-483a-b640-e75a4d90aa2d
           IMAGE: ${{ needs.build-and-push.outputs.image }}:${{ github.sha }}
         run: |
           if [ -z "$ARCANE_URL" ] || [ -z "$ARCANE_API_KEY" ]; then
@@ -74,7 +74,10 @@ jobs:
           echo "Redeploying with latest image ($IMAGE)..."
           status=$(curl -sS -o /tmp/arcane-redeploy.json -w '%{http_code}' -X POST "$base/redeploy" -H "X-Api-Key: $ARCANE_API_KEY")
           cat /tmp/arcane-redeploy.json
-          if [ "$status" -ge 300 ]; then
-            echo "Arcane redeploy failed with HTTP $status"
+          echo
+          # This is a streamed endpoint: it can return HTTP 200 with an {"error": ...} line in the
+          # body even when the operation itself failed (e.g. a bad project ID), so check both.
+          if [ "$status" -ge 300 ] || grep -q '"error"' /tmp/arcane-redeploy.json; then
+            echo "Arcane redeploy failed (HTTP $status)"
             exit 1
           fi
