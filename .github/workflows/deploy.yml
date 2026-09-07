@@ -1,0 +1,60 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  build-and-push:
+    needs: ci
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image name
+        id: meta
+        run: echo "image=ghcr.io/${{ github.repository }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:latest
+            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      # TODO: replace with the real Arcane redeploy call once its API shape is confirmed.
+      # Everything upstream (image name/tag/registry) is stable regardless of what this
+      # call ends up looking like — this step is intentionally isolated and can no-op.
+      - name: Trigger Arcane redeploy
+        env:
+          ARCANE_BASE_URL: ${{ secrets.ARCANE_BASE_URL }}
+          ARCANE_API_TOKEN: ${{ secrets.ARCANE_API_TOKEN }}
+          IMAGE: ${{ needs.build-and-push.outputs.image }}:${{ github.sha }}
+        run: |
+          if [ -z "$ARCANE_BASE_URL" ] || [ -z "$ARCANE_API_TOKEN" ]; then
+            echo "ARCANE_BASE_URL/ARCANE_API_TOKEN not set yet; skipping redeploy call (image pushed as $IMAGE)."
+            exit 0
+          fi
+          echo "TODO: call Arcane's redeploy API for $IMAGE"

@@ -1,0 +1,36 @@
+# What Arcane runs. Set IMAGE to the GHCR image built by .github/workflows/deploy.yml
+# (e.g. ghcr.io/<owner>/md2-tracker:latest) once the GitHub repo exists.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: md2
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: md2_tracker
+    volumes:
+      - md2_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U md2']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: ${IMAGE:-ghcr.io/OWNER/md2-tracker:latest}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://md2:${POSTGRES_PASSWORD}@db:5432/md2_tracker
+      SESSION_SECRET: ${SESSION_SECRET}
+      PORT: 3000
+      NODE_ENV: production
+      ALLOW_REGISTRATION: 'false'
+      COOKIE_SECURE: 'true'
+    ports:
+      - '3000:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  md2_db_data:
