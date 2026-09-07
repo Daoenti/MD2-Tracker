@@ -5,3 +5,8 @@ node_modules/
 dist/
 build/
 .claude/settings.local.json
+*.log
+npm-debug.log*
+coverage/
+.vite/
+*.local
