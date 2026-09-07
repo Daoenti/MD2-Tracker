@@ -8,6 +8,7 @@ const router = createRouter({
     { path: '/register', name: 'register', component: () => import('../views/RegisterView.vue') },
     { path: '/', name: 'encounters', component: () => import('../views/EncounterListView.vue'), meta: { requiresAuth: true } },
     { path: '/encounters/:id', name: 'board', component: () => import('../views/EncounterBoardView.vue'), meta: { requiresAuth: true } },
+    { path: '/admin', name: 'admin', component: () => import('../views/AdminView.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
   ],
 });
 
@@ -19,6 +20,10 @@ router.beforeEach(async (to) => {
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } };
+  }
+
+  if (to.meta.requiresAdmin && !auth.user?.isAdmin) {
+    return { name: 'encounters' };
   }
 
   if ((to.name === 'login' || to.name === 'register') && auth.isAuthenticated) {

@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useBoardStore } from '../stores/board.store.js';
-import { namesForKind } from '../constants/enemyNames.js';
+import { enemyTemplatesApi } from '../api/enemyTemplates.js';
 
 const emit = defineEmits(['close']);
 const board = useBoardStore();
@@ -16,11 +16,31 @@ const minionCount = ref(board.encounter.heroCount);
 const healthSingle = ref(10);
 const bossTrackMax = ref(8);
 
-const names = computed(() => namesForKind(type.value));
+const templates = ref([]);
+onMounted(async () => {
+  templates.value = await enemyTemplatesApi.list();
+});
+
+const templatesForType = computed(() => templates.value.filter((t) => t.kind === type.value));
+const names = computed(() => templatesForType.value.map((t) => t.name));
 
 watch(type, (next) => {
   name.value = '';
   healthSingle.value = next === 'boss' ? 20 : 10;
+});
+
+// Picking a catalog name pre-fills its suggested defaults; anything else keeps the generic ones above.
+watch(name, (next) => {
+  const match = templatesForType.value.find((t) => t.name.toLowerCase() === next.trim().toLowerCase());
+  if (!match) return;
+  if (match.level) level.value = match.level;
+  if (type.value === 'mob') {
+    healthMob.value = match.healthMax;
+    if (match.minionCount !== undefined) minionCount.value = match.minionCount;
+  } else {
+    healthSingle.value = match.healthMax;
+    if (type.value === 'boss' && match.bossTrackMax !== undefined) bossTrackMax.value = match.bossTrackMax;
+  }
 });
 
 function close() {

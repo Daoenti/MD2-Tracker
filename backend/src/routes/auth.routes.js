@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { credentialsSchema } from '../validation/auth.schema.js';
+import { credentialsSchema, changePasswordSchema } from '../validation/auth.schema.js';
 import { validateBody } from '../middleware/validate.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
@@ -10,7 +10,7 @@ import * as authService from '../services/auth.service.js';
 export const authRouter = Router();
 
 function publicUser(user) {
-  return { id: user.id, username: user.username };
+  return { id: user.id, username: user.username, isAdmin: user.isAdmin };
 }
 
 authRouter.post(
@@ -53,5 +53,16 @@ authRouter.get(
     const user = await usersRepo.findById(req.session.userId);
     if (!user) throw new HttpError(401, 'Not authenticated');
     res.json(publicUser(user));
+  }),
+);
+
+authRouter.patch(
+  '/me/password',
+  requireAuth,
+  validateBody(changePasswordSchema),
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    await authService.changePassword(req.session.userId, currentPassword, newPassword);
+    res.status(204).end();
   }),
 );

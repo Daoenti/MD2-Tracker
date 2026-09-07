@@ -7,15 +7,25 @@ import { HttpError } from '../middleware/errorHandler.js';
 
 const BCRYPT_ROUNDS = 12;
 
-export async function registerUser({ username, password }) {
+export function hashPassword(password) {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
+}
+
+// Shared by public self-registration and admin-created accounts — both get a starter
+// sample encounter; only the caller decides isAdmin and whether ALLOW_REGISTRATION applies.
+export async function createUserWithPassword({ username, password, isAdmin = false }) {
   const existing = await usersRepo.findByUsername(username);
   if (existing) {
     throw new HttpError(409, 'Username already taken');
   }
-  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-  const user = await usersRepo.createUser({ username, passwordHash });
+  const passwordHash = await hashPassword(password);
+  const user = await usersRepo.createUser({ username, passwordHash, isAdmin });
   await seedSampleEncounter(user.id);
   return user;
+}
+
+export async function registerUser({ username, password }) {
+  return createUserWithPassword({ username, password, isAdmin: false });
 }
 
 export async function verifyLogin({ username, password }) {
@@ -24,6 +34,15 @@ export async function verifyLogin({ username, password }) {
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) return null;
   return user;
+}
+
+export async function changePassword(userId, currentPassword, newPassword) {
+  const user = await usersRepo.findById(userId);
+  if (!user) throw new HttpError(401, 'Not authenticated');
+  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!valid) throw new HttpError(400, 'Current password is incorrect');
+  const passwordHash = await hashPassword(newPassword);
+  await usersRepo.updatePassword(userId, passwordHash);
 }
 
 // Mirrors the original client's defaultState() sample data, ported to a real encounter row.

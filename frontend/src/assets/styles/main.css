@@ -324,6 +324,29 @@ main.grid{
   background:var(--surface-2);color:var(--text);font-size:1rem;
 }
 
+.admin-main{padding:1.25rem;display:flex;flex-direction:column;gap:1.5rem;max-width:960px;margin:0 auto;}
+.admin-section h2{font-size:1.1rem;margin-bottom:0.8rem;}
+.admin-section h3{font-size:0.85rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin:1.1rem 0 0.5rem;}
+.admin-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface);}
+.admin-table{width:100%;border-collapse:collapse;font-size:0.88rem;}
+.admin-table th{
+  text-align:left;padding:0.6rem 0.7rem;background:var(--surface-2);color:var(--text-dim);
+  font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;
+}
+.admin-table td{padding:0.5rem 0.7rem;border-top:1px solid var(--border);vertical-align:middle;}
+.admin-table input[type="text"],.admin-table input[type="number"]{
+  width:100%;min-width:5rem;padding:0.4rem 0.5rem;border-radius:var(--radius-sm);border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text);font-size:0.88rem;
+}
+.admin-table input[type="checkbox"]{width:18px;height:18px;}
+.admin-inline-form{display:flex;flex-wrap:wrap;gap:0.6rem;align-items:flex-end;margin-top:0.7rem;}
+.admin-inline-form label{display:flex;flex-direction:column;gap:0.25rem;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);}
+.admin-inline-form input,.admin-inline-form select{
+  padding:0.5rem 0.6rem;border-radius:var(--radius-sm);border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text);font-size:0.9rem;
+}
+.admin-error{color:var(--danger);font-size:0.8rem;margin:0.5rem 0 0;}
+
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important;}
 }

@@ -9,6 +9,8 @@ import { authRouter } from './routes/auth.routes.js';
 import { encountersRouter } from './routes/encounters.routes.js';
 import { unitsRouter } from './routes/units.routes.js';
 import { minionsRouter } from './routes/minions.routes.js';
+import { adminRouter } from './routes/admin.routes.js';
+import { enemyTemplatesRouter } from './routes/enemyTemplates.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -41,6 +43,8 @@ export function createApp() {
   app.use('/api/encounters', encountersRouter);
   app.use('/api/units', unitsRouter);
   app.use('/api/minions', minionsRouter);
+  app.use('/api/admin', adminRouter);
+  app.use('/api/enemy-templates', enemyTemplatesRouter);
 
   // Combined production image: Express also serves the built Vue SPA.
   const staticDir = path.join(__dirname, '../public');

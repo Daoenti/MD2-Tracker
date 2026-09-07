@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth.store.js';
 import { useEncountersStore } from '../stores/encounters.store.js';
+import ChangePasswordModal from '../components/ChangePasswordModal.vue';
 
 const auth = useAuthStore();
 const encounters = useEncountersStore();
@@ -10,6 +11,7 @@ const router = useRouter();
 
 const newName = ref('');
 const creating = ref(false);
+const showChangePassword = ref(false);
 
 onMounted(() => {
   encounters.fetchList();
@@ -48,8 +50,14 @@ async function logout() {
         <p>{{ auth.user?.username }}</p>
       </div>
     </div>
-    <button type="button" class="btn btn-ghost btn-sm" @click="logout">Log out</button>
+    <div class="controls">
+      <RouterLink v-if="auth.user?.isAdmin" to="/admin" class="btn btn-ghost btn-sm">Admin</RouterLink>
+      <button type="button" class="btn btn-ghost btn-sm" @click="showChangePassword = true">Change password</button>
+      <button type="button" class="btn btn-ghost btn-sm" @click="logout">Log out</button>
+    </div>
   </header>
+
+  <ChangePasswordModal v-if="showChangePassword" @close="showChangePassword = false" />
 
   <form class="new-encounter-form" @submit.prevent="createEncounter">
     <input v-model.trim="newName" placeholder="New encounter name" required />

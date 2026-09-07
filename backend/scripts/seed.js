@@ -1,13 +1,10 @@
 // One-off script that creates the single locked-down owner account directly in the DB,
 // bypassing the public /api/auth/register endpoint entirely (registration stays disabled in prod).
 import 'dotenv/config';
-import bcrypt from 'bcrypt';
 import { runMigrations } from '../src/db/migrate.js';
 import { pool } from '../src/db/pool.js';
 import * as usersRepo from '../src/repositories/users.repo.js';
-import { seedSampleEncounter } from '../src/services/auth.service.js';
-
-const BCRYPT_ROUNDS = 12;
+import { hashPassword, seedSampleEncounter } from '../src/services/auth.service.js';
 
 async function main() {
   const username = process.env.SEED_USERNAME;
@@ -24,10 +21,13 @@ async function main() {
     return;
   }
 
-  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-  const user = await usersRepo.createUser({ username, passwordHash });
+  // The owner account this script exists to create must be an admin — the is_admin backfill
+  // in migration 1700000000005 only covers rows that already existed at migration time, which
+  // this one (created after migrations run) never is.
+  const passwordHash = await hashPassword(password);
+  const user = await usersRepo.createUser({ username, passwordHash, isAdmin: true });
   await seedSampleEncounter(user.id);
-  console.log(`Created user "${username}" with a sample encounter.`);
+  console.log(`Created admin user "${username}" with a sample encounter.`);
 }
 
 main()

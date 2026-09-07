@@ -33,5 +33,8 @@ export const useAuthStore = defineStore('auth', {
       await authApi.logout();
       this.user = null;
     },
+    async changePassword(currentPassword, newPassword) {
+      await authApi.changePassword(currentPassword, newPassword);
+    },
   },
 });
