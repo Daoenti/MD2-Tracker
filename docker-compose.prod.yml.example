@@ -1,6 +1,8 @@
-# What Arcane runs. Reflects the actual deployed config: app + db on an internal network,
-# app also on the external traefik_proxy network so Traefik can route md2.thecowsaysmoo.net to it.
-# Set IMAGE to override the GHCR image built by .github/workflows/deploy.yml.
+# What Arcane runs. Copy this to docker-compose.prod.yml (gitignored) and fill in your own
+# domain/network names — that file is untracked so real endpoint details don't end up in git.
+#
+# This shape assumes an external Traefik reverse proxy on a shared Docker network; adjust the
+# app service's `networks`/`labels` block (or drop it) if you're not using Traefik.
 services:
   db:
     image: postgres:16-alpine
@@ -25,7 +27,7 @@ services:
     environment:
       DATABASE_URL: postgres://md2:${POSTGRES_PASSWORD}@db:5432/md2_tracker
       SESSION_SECRET: ${SESSION_SECRET}
-      PORT: 3004
+      PORT: 3000
       NODE_ENV: production
       ALLOW_REGISTRATION: 'false'
       COOKIE_SECURE: 'true'
@@ -34,13 +36,13 @@ services:
       - md2_tracker
     labels:
       traefik.enable: "true"
-      # Required because app sits on two networks — without this Traefik can't tell
-      # which one to route through and silently drops the router (404, not 502).
+      # Required whenever this service sits on more than one Docker network — without it
+      # Traefik can't tell which one to route through and silently drops the router (404).
       traefik.docker.network: traefik_proxy
       traefik.http.routers.md2tracker.entrypoints: https
-      traefik.http.routers.md2tracker.rule: Host(`md2.thecowsaysmoo.net`)
+      traefik.http.routers.md2tracker.rule: Host(`md2.your-domain.example`)
       traefik.http.routers.md2tracker.tls: "true"
-      traefik.http.services.md2tracker.loadbalancer.server.port: "3004"
+      traefik.http.services.md2tracker.loadbalancer.server.port: "3000"
     depends_on:
       db:
         condition: service_healthy

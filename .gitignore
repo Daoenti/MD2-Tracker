@@ -2,6 +2,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+docker-compose.prod.yml
 dist/
 build/
 .claude/settings.local.json
